@@ -1,4 +1,4 @@
-name: SuperBuild-Release
+name: SuperBuild-Artifact
 
 on: [workflow_dispatch]
 
