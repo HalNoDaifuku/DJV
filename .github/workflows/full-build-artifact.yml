@@ -1,10 +1,28 @@
-name: SuperBuild-Artifact
+name: Full-Build-Artifact
 
 on: [workflow_dispatch]
 
 jobs:
   linux-build:
     runs-on: ubuntu-latest
+
+    env:
+      JOBS: 4
+      DJV_MACOS_PACKAGE: OFF
+      TLRENDER_NET: OFF
+      TLRENDER_OCIO: ON
+      TLRENDER_JPEG: ON
+      TLRENDER_TIFF: ON
+      TLRENDER_EXR: ON
+      TLRENDER_FFMPEG: ON
+      TLRENDER_FFMPEG_MINIMAL: OFF
+      TLRENDER_NASM: ON
+      TLRENDER_OIIO: ON
+      TLRENDER_USD: ON
+      TLRENDER_BMD: OFF
+      TLRENDER_BMD_SDK:
+      FTK_API: GL_4_1
+      BUILD_SHARED_LIBS: OFF
 
     steps:
     - uses: actions/checkout@v6
@@ -25,9 +43,9 @@ jobs:
         sh DJV/etc/Linux/linux-setup-gha.sh
 
     - name: Super Build
-      run: sh DJV/sbuild-linux.sh
+      run: sh DJV/etc/Linux/linux-sbuild.sh Release
 
-    - name: Build and package DJV
+    - name: Package
       run: sh DJV/etc/Linux/linux-package.sh Release
 
     - uses: actions/upload-artifact@v4
@@ -37,6 +55,26 @@ jobs:
 
   macos-build:
     runs-on: macos-latest
+
+    env:
+      JOBS: 4
+      DJV_MACOS_PACKAGE: ON
+      TLRENDER_NET: OFF
+      TLRENDER_OCIO: ON
+      TLRENDER_JPEG: ON
+      TLRENDER_TIFF: ON
+      TLRENDER_EXR: ON
+      TLRENDER_FFMPEG: ON
+      TLRENDER_FFMPEG_MINIMAL: OFF
+      TLRENDER_NASM: ON
+      TLRENDER_OIIO: ON
+      TLRENDER_USD: ON
+      TLRENDER_BMD: OFF
+      TLRENDER_BMD_SDK:
+      FTK_API: GL_4_1
+      BUILD_SHARED_LIBS: OFF
+      CMAKE_OSX_DEPLOYMENT_TARGET: 14
+      CMAKE_OSX_ARCHITECTURES: arm64
 
     steps:
     - uses: actions/checkout@v6
@@ -59,7 +97,7 @@ jobs:
     - name: Super Build
       run: |
         export DYLD_LIBRARY_PATH=$PWD/install-Release/lib:$DYLD_LIBRARY_PATH
-        sh DJV/sbuild-macos.sh
+        sh DJV/etc/macOS/macos-sbuild.sh Release
 
     # \bug Sometimes the CI runs out of disk space when building the macOS
     # package, so free some up by removing the super build directory.
@@ -76,6 +114,24 @@ jobs:
 
   windows-build:
     runs-on: windows-latest
+
+    env:
+      JOBS: 4
+      DJV_MACOS_PACKAGE: OFF
+      TLRENDER_NET: OFF
+      TLRENDER_OCIO: ON
+      TLRENDER_JPEG: ON
+      TLRENDER_TIFF: ON
+      TLRENDER_EXR: ON
+      TLRENDER_FFMPEG: ON
+      TLRENDER_FFMPEG_MINIMAL: OFF
+      TLRENDER_NASM: OFF
+      TLRENDER_OIIO: ON
+      TLRENDER_USD: ON
+      TLRENDER_BMD: OFF
+      TLRENDER_BMD_SDK:
+      FTK_API: GL_4_1
+      BUILD_SHARED_LIBS: OFF
 
     steps:
     - uses: actions/checkout@v6
@@ -100,9 +156,9 @@ jobs:
 
     - name: Super Build
       shell: cmd
-      run: DJV\sbuild-win.bat
+      run: DJV\etc\Windows\windows-sbuild.bat Release
 
-    - name: Build and package DJV
+    - name: Package
       shell: cmd
       run: DJV\etc\Windows\windows-package.bat Release
 
