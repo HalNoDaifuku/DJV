@@ -1,0 +1,115 @@
+name: SuperBuild-Release
+
+on: [workflow_dispatch]
+
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        path: DJV
+        submodules: recursive
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Setup environment
+      run: |
+        echo "$PWD/install-Release/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=$PWD/install-Release/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "PYTHONPATH=$PWD/install-Release/lib:$PYTHONPATH" >> $GITHUB_ENV
+        cmake --version
+        python --version
+        sh DJV/etc/Linux/linux-setup-gha.sh
+
+    - name: Super Build
+      run: sh DJV/sbuild-linux.sh
+
+    - name: Build and package DJV
+      run: sh DJV/etc/Linux/linux-package.sh Release
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: DJV-Linux-Packages
+        path: build-Release/DJV-*.tar.gz
+
+  macos-build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        path: DJV
+        submodules: recursive
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    # \bug DYLD_LIBRARY_PATH is not being set here?
+    - name: Setup environment
+      run: |
+        echo "$PWD/install-Release/bin" >> $GITHUB_PATH
+        echo "DYLD_LIBRARY_PATH=$PWD/install-Release/lib:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "PYTHONPATH=$PWD/install-Release/lib:$PYTHONPATH" >> $GITHUB_ENV
+        cmake --version
+        python --version
+
+    - name: Super Build
+      run: |
+        export DYLD_LIBRARY_PATH=$PWD/install-Release/lib:$DYLD_LIBRARY_PATH
+        sh DJV/sbuild-macos.sh
+
+    # \bug Sometimes the CI runs out of disk space when building the macOS
+    # package, so free some up by removing the super build directory.
+    - name: Package
+      run: |
+        rm -rf sbuild-Release
+        export DYLD_LIBRARY_PATH=$PWD/install-Release/lib:$DYLD_LIBRARY_PATH
+        sh DJV/etc/macOS/macos-package.sh Release
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: DJV-macOS-Packages
+        path: build-Release/DJV-*.dmg
+
+  windows-build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        path: DJV
+        submodules: recursive
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - uses: ilammy/setup-nasm@v1
+
+    # \bug Any spaces before the ">>" will be considered part of the path.
+    - name: Setup environment
+      shell: cmd
+      run: |
+        echo %CD%\install-Release\bin>> %GITHUB_PATH%
+        echo %CD%\install-Release\lib>> %GITHUB_PATH%
+        echo CTEST_OUTPUT_ON_FAILURE=1 >> %GITHUB_ENV%
+        cmake --version
+        python --version
+        winget install NSIS.NSIS --accept-package-agreements --accept-source-agreements --disable-interactivity
+        winget install StrawberryPerl.StrawberryPerl --accept-package-agreements --accept-source-agreements --disable-interactivity
+
+    - name: Super Build
+      shell: cmd
+      run: DJV\sbuild-win.bat
+
+    - name: Build and package DJV
+      shell: cmd
+      run: DJV\etc\Windows\windows-package.bat Release
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: DJV-Windows-Packages
+        path: |
+          build-Release\DJV-*.exe
+          build-Release\DJV-*.zip
