@@ -97,7 +97,6 @@ jobs:
         cmake --version
         python --version
         winget install NSIS.NSIS --accept-package-agreements --accept-source-agreements --disable-interactivity
-        winget install StrawberryPerl.StrawberryPerl --accept-package-agreements --accept-source-agreements --disable-interactivity
 
     - name: Super Build
       shell: cmd
